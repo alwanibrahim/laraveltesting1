@@ -38,14 +38,25 @@ jobs:
           echo "📥 Pulling latest changes..."
           git pull origin main
 
-          # Install/Update composer dependencies
+          # Install/Update composer dependencies (including dev packages for Pail)
           echo "📦 Installing composer dependencies..."
-          composer install --no-dev --optimize-autoloader --no-interaction
+          composer install --optimize-autoloader --no-interaction
+
+          # Make sure Laravel Pail is installed
+          echo "🔧 Ensuring Laravel Pail is available..."
+          composer require laravel/pail --dev --no-interaction || echo "Pail already installed"
+
+          # Regenerate autoload to fix any class loading issues
+          composer dump-autoload --optimize
 
           # Clear and cache Laravel configs
           echo "🔄 Clearing and caching Laravel..."
           php artisan config:clear
           php artisan cache:clear
+          php artisan route:clear
+          php artisan view:clear
+
+          # Cache configurations for production
           php artisan config:cache
           php artisan route:cache
           php artisan view:cache
@@ -61,6 +72,10 @@ jobs:
 
           # Restart services if needed
           echo "♻️ Restarting services..."
-          php artisan queue:restart
+          php artisan queue:restart || echo "Queue not running, skipping restart"
+
+          # Final test
+          echo "🧪 Testing application..."
+          php artisan --version
 
           echo "✅ Deployment completed successfully!"
